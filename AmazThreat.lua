@@ -22,7 +22,7 @@ AMZT.Style = {
 	
 	-- Title Bar
 	["Title"] = { 
-		["Font"] = [[Interface\AddOns\Tukui\media\fonts\visitor1.ttf]],
+		["Font"] = TukuiCF["media"].uffont,
 		["FontSize"] = 10,
 		["FontColor"] = {1, 0.82, 0},
 		["Color"] = { 0, 0, 0, 1},
@@ -31,7 +31,7 @@ AMZT.Style = {
 	
 	-- Unit Bar
 	["Unit"] = {
-		["Font"] = [[Interface\AddOns\Tukui\media\fonts\visitor1.ttf]],
+		["Font"] = TukuiCF["media"].uffont,
 		["FontSize"] = 10,
 		["FontColor"] = {0.9, 0.9, 0.9},
 		["Height"] = 12,
@@ -40,6 +40,12 @@ AMZT.Style = {
 		["UseClassColor"] = false, -- Use class color for the bar background. If false UniColor will be used and the name/threat value will be class colored
 		["UniColor"] = {0.23, 0.23, 0.23},
 	},
+	
+	-- Anchor
+	["Anchor"] = {
+		{"TOPLEFT", AmazDamageThreat, "TOPLEFT", 2, -2},
+		--{"BOTTOMRIGHT",frame1,"BOTTOMRIGHT",x,y},
+	}
 }
 
 -- Our Threat bars
@@ -53,6 +59,10 @@ local AMZTFrame = CreateFrame("Frame", "AmazThreatFrame", UIParent)
 AMZTFrame.Elapsed = 0
 
 function AMZTFrame:PLAYER_ENTERING_WORLD(event)
+	-- Set anchors
+	for idx, anch in pairs(AMZT.Style.Anchor) do
+		AMZTFrame:SetPoint(anch[1], anch[2], anch[3], anch[4], anch[5])
+	end
 end
 
 function AMZTFrame:PLAYER_REGEN_DISABLED(event)
@@ -259,7 +269,6 @@ function AMZT:Init()
 	
 	AMZT:SetupFrames()
 	
-	AMZTFrame:SetPoint("TOPLEFT", AmazDamageThreat, "TOPLEFT", 2, -2)
 end
 
 AMZT.Init()
