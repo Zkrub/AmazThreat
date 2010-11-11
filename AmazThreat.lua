@@ -4,13 +4,12 @@
 AMZT = {}
 
 -- Threat mode
--- 1 = Time based update only
--- 2 = Time based + damage based update
+-- 1 = Time based update only using MaxInterval
+-- 2 = Time based dynamic
 AMZT.Mode = 2
 AMZT.ModeTreshhold = 80 -- Only used for mode 2. If threat above defined value updates are based on damage instead
-AMZT.Interval = 1 -- Update interval in seconds
-AMZT.ShortInterval = 0.1 -- Used when personal threat exceed ModeTreshhold
-AMZT.DamageTreshhold = 25000 -- Only used for mode 2. Required amount of damage needed before update
+AMZT.MaxInterval = 1 -- Update interval in seconds
+AMZT.MinInterval = 0.1 -- Used when personal threat exceed ModeTreshhold
 
 -- Show when?
 AMZT.Show = {Solo = true, Party = true, Raid = true}
@@ -185,10 +184,10 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 		
 		-- Check player threat for interval
 		isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation("player", "target")
-		if (scaledPercent ~= nil and scaledPercent > AMZT.ModeTreshhold) then
-			currentInterval = AMZT.ShortInterval
+		if (scaledPercent ~= nil and AMZT.Mode == 2) then
+			currentInterval = AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100)))
 		else
-			currentInterval = AMZT.Interval
+			currentInterval = AMZT.MaxInterval
 		end
 		
 		AMZT:RenderFrame()
