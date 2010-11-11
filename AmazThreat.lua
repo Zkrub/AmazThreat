@@ -56,11 +56,23 @@ function AMZTFrame:PLAYER_ENTERING_WORLD(event)
 end
 
 function AMZTFrame:PLAYER_REGEN_DISABLED(event)
+	
 	-- Get player, party and raid members for local threat table
-	table.insert(AMZThreatTable, {
-		unitName = UnitName("player"),
-		threat = -1,
-	});
+	if (GetNumRaidMembers() > 0) then -- Check for raid
+		for i=1, GetNumRaidMembers() do
+			table.insert(AMZThreatTable, { unitName = UnitName("raid".. i), threat = 0,});
+		end
+	else -- Not in raid
+		-- Add player
+		table.insert(AMZThreatTable, { unitName = UnitName("player"), threat = 0,});
+		
+		-- Check for party
+		if (GetNumPartyMembers() > 0) then
+			for i=1, GetNumPartyMembers() do
+				table.insert(AMZThreatTable, { unitName = UnitName("party".. i), threat = 0,});
+			end
+		end
+	end
 	
 	-- Start time based check
 	AMZTFrame:SetScript("OnUpdate", function(self, elapsed)
@@ -116,7 +128,7 @@ function AMZT:SetupFrames()
 	
 	-- Create threat bars
 	local tbAnchor = titleBar
-	local uniColor = AMZT.Style.Unit.UseClassColor
+	
 	for i = 1, AMZT.Style.Unit.MaxBars do
 		local unitBar = CreateFrame("StatusBar", "AmazThreatFrame".. i, AMZTFrame)
 		unitBar:SetWidth(AMZT.Style.Width)
@@ -148,7 +160,6 @@ function AMZT:SetupFrames()
 		unitBar.Threat:SetText("")
 		unitBar.Threat:Show()
 		
-		--unitBar:SetValue(110-(i*10))
 		unitBar:Hide()
 		
 		AMZT.Bars[i] = unitBar
