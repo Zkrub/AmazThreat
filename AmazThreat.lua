@@ -7,7 +7,6 @@ AMZT = {}
 -- 1 = Time based update only using MaxInterval
 -- 2 = Time based dynamic
 AMZT.Mode = 2
-AMZT.ModeTreshhold = 80 -- Only used for mode 2. If threat above defined value updates are based on damage instead
 AMZT.MaxInterval = 1 -- Update interval in seconds
 AMZT.MinInterval = 0.1 -- Used when personal threat exceed ModeTreshhold
 
@@ -58,6 +57,7 @@ local AMZThreatTable = {}
 -- Base Frame
 local AMZTFrame = CreateFrame("Frame", "AmazThreatFrame", UIParent)
 AMZTFrame.Elapsed = 0
+AMZTFrame.Interval = 1
 
 function AMZTFrame:PLAYER_ENTERING_WORLD(event)
 	-- Set anchors
@@ -67,6 +67,13 @@ function AMZTFrame:PLAYER_ENTERING_WORLD(event)
 end
 
 function AMZTFrame:PLAYER_REGEN_DISABLED(event)
+	-- Set the interval
+	if (AMZT.Mode == 2) then
+		AMZTFrame.Interval = AMZT.MinInterval
+	else
+		AMZTFrame.Interval = AMZT.MaxInterval
+	end
+	
 	
 	-- Get player, party and raid members for local threat table
 	if (GetNumRaidMembers() > 0) then -- Check for raid
@@ -191,11 +198,10 @@ function AMZT:SetupFrames()
 	end
 end
 
-local currentInterval = 0.1
 function AMZT:DoUpdate(amztFrame, elapsed)
 	amztFrame.Elapsed = amztFrame.Elapsed + elapsed
 	
-	if (amztFrame.Elapsed >= currentInterval and UnitName("target") ~= nil) then
+	if (amztFrame.Elapsed >= AMZTFrame.Interval and UnitName("target") ~= nil) then
 		for i = 1, table.getn(AMZThreatTable) do
 			isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation(AMZThreatTable[i].unitName, "target")
 			
@@ -209,10 +215,7 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 		-- Check player threat for interval
 		isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation("player", "target")
 		if (scaledPercent ~= nil and AMZT.Mode == 2) then
-			currentInterval = (AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100))) * 0.9)
-			--print(currentInterval)
-		else
-			currentInterval = AMZT.MaxInterval
+			AMZTFrame.Interval = (AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100))) * 0.9)
 		end
 		
 		AMZT:RenderFrame()
