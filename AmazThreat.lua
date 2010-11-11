@@ -180,14 +180,17 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 				AMZThreatTable[i].threat = 0
 			else
 				AMZThreatTable[i].threat = scaledPercent
-				
-				if (AMZThreatTable[i].unitName == UnitName("player") and scaledPercent > AMZT.ModeTreshhold) then
-					currentInterval = AMZT.ShortInterval
-				elseif (AMZThreatTable[i].unitName == UnitName("player") and scaledPercent < AMZT.ModeTreshhold) then
-					currentInterval = AMZT.Interval
-				end
 			end
 		end
+		
+		-- Check player threat for interval
+		isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation("player", "target")
+		if (scaledPercent ~= nil and scaledPercent > AMZT.ModeTreshhold) then
+			currentInterval = AMZT.ShortInterval
+		else
+			currentInterval = AMZT.Interval
+		end
+		
 		AMZT:RenderFrame()
 		amztFrame.Elapsed = 0
 	end
