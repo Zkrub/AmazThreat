@@ -1,0 +1,9 @@
+﻿## Interface: 40000
+## Author: Amaz @ Zenedar-EU
+## Version: 0.1
+## Title: |cFF00FFFFAmaz|r Threat
+## Notes: Light threat meter
+## RequiredDeps: Tukui
+## SavedVariables: 
+
+AmazThreat.lua
