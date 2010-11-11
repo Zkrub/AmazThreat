@@ -199,7 +199,7 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 		isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation("player", "target")
 		if (scaledPercent ~= nil and AMZT.Mode == 2) then
 			currentInterval = (AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100))) * 0.9)
-			print(currentInterval)
+			--print(currentInterval)
 		else
 			currentInterval = AMZT.MaxInterval
 		end
