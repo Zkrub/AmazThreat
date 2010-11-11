@@ -34,6 +34,7 @@ AMZT.Style = {
 		["Font"] = TukuiCF["media"].uffont,
 		["FontSize"] = 10,
 		["FontColor"] = {0.9, 0.9, 0.9},
+		["Texture"] = TukuiCF["media"].normTex,
 		["Height"] = 12,
 		["MaxBars"] = 9,
 		["BarSpacing"] = -1,
@@ -156,7 +157,7 @@ function AMZT:SetupFrames()
 		local unitBar = CreateFrame("StatusBar", "AmazThreatFrame".. i, AMZTFrame)
 		unitBar:SetWidth(AMZT.Style.Width)
 		unitBar:SetHeight(AMZT.Style.Unit.Height)
-		unitBar:SetStatusBarTexture(TukuiCF["media"].normTex)
+		unitBar:SetStatusBarTexture(AMZT.Style.Unit.Texture)
 		unitBar:SetPoint("TOP", tbAnchor, "BOTTOM", 0, AMZT.Style.Unit.BarSpacing)
 		unitBar:SetMinMaxValues(0,100)
 		
@@ -190,7 +191,7 @@ function AMZT:SetupFrames()
 	end
 end
 
-local currentInterval = 1
+local currentInterval = 0.1
 function AMZT:DoUpdate(amztFrame, elapsed)
 	amztFrame.Elapsed = amztFrame.Elapsed + elapsed
 	
