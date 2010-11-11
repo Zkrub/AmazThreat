@@ -164,7 +164,7 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 			isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation(AMZThreatTable[i].unitName, "target")
 			
 			if (scaledPercent == nil) then
-				AMZThreatTable[i].threat = -1
+				AMZThreatTable[i].threat = 0
 			else
 				AMZThreatTable[i].threat = scaledPercent
 			end
@@ -178,7 +178,7 @@ function AMZT:RenderFrame()
 	-- Sort the threat table
 	table.sort(AMZThreatTable, function(a,b) return a.threat>b.threat end)
 	
-	-- Get top threat units (according to AMZT.Style.Unit.MaxBars), ignore if threat is -1
+	-- Get top threat units (according to AMZT.Style.Unit.MaxBars), ignore if threat is 0
 	for i = 1, table.getn(AMZThreatTable) do
 		if (i > AMZT.Style.Unit.MaxBars) then
 			return
@@ -206,6 +206,7 @@ function AMZT:RenderFrame()
 				end
 			end
 		else
+			-- Hide bar if threat is 0
 			threatBar:Hide()
 		end
 	end
