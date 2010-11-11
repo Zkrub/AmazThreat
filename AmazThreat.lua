@@ -94,7 +94,20 @@ function AMZTFrame:PLAYER_REGEN_ENABLED(event)
 end
 
 function AMZTFrame:PLAYER_TARGET_CHANGED(event)
-	-- Clear threat table if in combat
+	-- Reset threat values if in combat
+	if (UnitAffectingCombat("player")) then
+		for i=1, table.getn(AMZThreatTable) do
+			AMZThreatTable[i].threat = 0
+		end
+		
+		-- Hide all threat bars if no target
+		for i=1, table.getn(AMZT.Bars) do
+			AMZT.Bars[i]:Hide()
+		end
+		
+		-- Do an update since new target
+		AMZT:DoUpdate(AMZTFrame, 1)
+	end
 end
 
 function AMZT:SetupFrames()
@@ -185,7 +198,8 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 		-- Check player threat for interval
 		isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation("player", "target")
 		if (scaledPercent ~= nil and AMZT.Mode == 2) then
-			currentInterval = AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100)))
+			currentInterval = (AMZT.MinInterval+(AMZT.MaxInterval-(AMZT.MaxInterval*(scaledPercent/100))) * 0.9)
+			print(currentInterval)
 		else
 			currentInterval = AMZT.MaxInterval
 		end
