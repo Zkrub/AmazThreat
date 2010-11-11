@@ -7,8 +7,9 @@ AMZT = {}
 -- 1 = Time based update only
 -- 2 = Time based + damage based update
 AMZT.Mode = 2
-AMZT.Interval = 0.1 -- Update interval in seconds
-AMZT.ModeTreshhold = 0.8 -- Only used for mode 2. If threat above defined value updates are based on damage instead
+AMZT.ModeTreshhold = 80 -- Only used for mode 2. If threat above defined value updates are based on damage instead
+AMZT.Interval = 1 -- Update interval in seconds
+AMZT.ShortInterval = 0.1 -- Used when personal threat exceed ModeTreshhold
 AMZT.DamageTreshhold = 25000 -- Only used for mode 2. Required amount of damage needed before update
 
 -- Show when?
@@ -167,10 +168,11 @@ function AMZT:SetupFrames()
 	end
 end
 
+local currentInterval = 1
 function AMZT:DoUpdate(amztFrame, elapsed)
 	amztFrame.Elapsed = amztFrame.Elapsed + elapsed
 	
-	if (amztFrame.Elapsed >= AMZT.Interval and UnitName("target") ~= nil) then
+	if (amztFrame.Elapsed >= currentInterval and UnitName("target") ~= nil) then
 		for i = 1, table.getn(AMZThreatTable) do
 			isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation(AMZThreatTable[i].unitName, "target")
 			
@@ -178,6 +180,12 @@ function AMZT:DoUpdate(amztFrame, elapsed)
 				AMZThreatTable[i].threat = 0
 			else
 				AMZThreatTable[i].threat = scaledPercent
+				
+				if (AMZThreatTable[i].unitName == UnitName("player") and scaledPercent > AMZT.ModeTreshhold) then
+					currentInterval = AMZT.ShortInterval
+				elseif (AMZThreatTable[i].unitName == UnitName("player") and scaledPercent < AMZT.ModeTreshhold) then
+					currentInterval = AMZT.Interval
+				end
 			end
 		end
 		AMZT:RenderFrame()
@@ -200,10 +208,10 @@ function AMZT:RenderFrame()
 		if (AMZThreatTable[i].threat > 0) then
 			threatBar:Show()
 			threatBar:SetValue(AMZThreatTable[i].threat)
+			threatBar.Threat:SetText(string.format("%.1f %%", AMZThreatTable[i].threat))
 			
 			-- Check if different unit. Update unitname & color if changed
 			if (threatBar.UnitName:GetText() ~= AMZThreatTable[i].unitName) then
-				threatBar.Threat:SetText(AMZThreatTable[i].threat .."%")
 				threatBar.UnitName:SetText(AMZThreatTable[i].unitName)
 							
 				local _, cls = UnitClass(AMZThreatTable[i].unitName)
