@@ -59,6 +59,8 @@ local AMZThreatTable = {}
 local AMZTFrame = CreateFrame("Frame", "AmazThreatFrame", UIParent)
 AMZTFrame.Elapsed = 0
 AMZTFrame.Interval = 1
+AMZTFrame.ValidTarget = false
+AMZTFrame.Running = false
 
 function AMZTFrame:PLAYER_ENTERING_WORLD(event)
 	-- Set anchors
@@ -105,6 +107,12 @@ function AMZTFrame:StartMeter()
 			end
 		end
 		
+		-- Check current target
+		AMZT:CheckTarget()
+		
+		-- Flag as running
+		AMZTFrame.Running = true
+		
 		-- Start time based check
 		AMZTFrame:SetScript("OnUpdate", function(self, elapsed)
 			AMZT:DoUpdate(AMZTFrame, elapsed);
@@ -113,6 +121,8 @@ function AMZTFrame:StartMeter()
 end
 
 function AMZTFrame:StopMeter()
+	AMZTFrame.Running = false
+	
 	-- Stop time based check
 	AMZTFrame:SetScript("OnUpdate", nil)
 	
@@ -123,19 +133,24 @@ function AMZTFrame:StopMeter()
 end
 
 function AMZTFrame:PLAYER_TARGET_CHANGED(event)
-	if (UnitAffectingCombat("player")) then
-		-- Reset threat values if in combat
-		for i=1, table.getn(AMZThreatTable) do
-			AMZThreatTable[i].threat = 0
-		end
+	if (AMZTFrame.Running) then
+		-- Check if a new valid target
+		AMZT:CheckTarget()
 		
-		-- Hide all threat bars
-		for i=1, table.getn(AMZT.Bars) do
-			AMZT.Bars[i]:Hide()
+		if (UnitAffectingCombat("player")) then
+			-- Reset threat values if in combat
+			for i=1, table.getn(AMZThreatTable) do
+				AMZThreatTable[i].threat = 0
+			end
+			
+			-- Hide all threat bars
+			for i=1, table.getn(AMZT.Bars) do
+				AMZT.Bars[i]:Hide()
+			end
+			
+			-- Do an update since new target
+			AMZT:DoUpdate(AMZTFrame, 1)
 		end
-		
-		-- Do an update since new target
-		AMZT:DoUpdate(AMZTFrame, 1)
 	end
 end
 
@@ -156,6 +171,14 @@ function AMZTFrame:PARTY_MEMBERS_CHANGED(event)
 			table.remove(AMZThreatTable, i)
 			return
 		end
+	end
+end
+
+function AMZT:CheckTarget()
+	if (UnitName("target") ~= nil and not UnitPlayerControlled("target")) then
+		AMZTFrame.ValidTarget = true
+	else
+		AMZTFrame.ValidTarget = false
 	end
 end
 
@@ -234,7 +257,8 @@ end
 function AMZT:DoUpdate(amztFrame, elapsed)
 	amztFrame.Elapsed = amztFrame.Elapsed + elapsed
 	
-	if (amztFrame.Elapsed >= AMZTFrame.Interval and UnitName("target") ~= nil and not UnitPlayerControlled("target")) then
+	--if (amztFrame.Elapsed >= AMZTFrame.Interval and UnitName("target") ~= nil and not UnitPlayerControlled("target")) then
+	if (amztFrame.Elapsed >= AMZTFrame.Interval and AMZTFrame.ValidTarget) then
 		for i = 1, table.getn(AMZThreatTable) do
 			isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation(AMZThreatTable[i].unitName, "target")
 			
