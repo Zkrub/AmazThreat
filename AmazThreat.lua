@@ -24,6 +24,7 @@ AMZT.Style = {
 		["Font"] = TukuiCF["media"].uffont,
 		["FontSize"] = 10,
 		["FontColor"] = {1, 0.82, 0},
+		["TextAlign"] = "LEFT",
 		["Color"] = { 0, 0, 0, 1},
 		["Height"] = 12,
 	},
@@ -67,43 +68,53 @@ function AMZTFrame:PLAYER_ENTERING_WORLD(event)
 end
 
 function AMZTFrame:PLAYER_REGEN_DISABLED(event)
-	-- Set the interval
-	if (AMZT.Mode == 2) then
-		AMZTFrame.Interval = AMZT.MinInterval
-	else
-		AMZTFrame.Interval = AMZT.MaxInterval
-	end
-	
-	
-	-- Get player, party and raid members for local threat table
-	if (GetNumRaidMembers() > 0) then -- Check for raid
-		for i=1, GetNumRaidMembers() do
-			table.insert(AMZThreatTable, { unitName = UnitName("raid".. i), threat = 0,});
-		end
-	else -- Not in raid
-		-- Add player
-		table.insert(AMZThreatTable, { unitName = UnitName("player"), threat = 0,});
-		
-		-- Check for party
-		if (GetNumPartyMembers() > 0) then
-			for i=1, GetNumPartyMembers() do
-				table.insert(AMZThreatTable, { unitName = UnitName("party".. i), threat = 0,});
-			end
-		end
-	end
-	
-	-- Start time based check
-	AMZTFrame:SetScript("OnUpdate", function(self, elapsed)
-		AMZT:DoUpdate(AMZTFrame, elapsed);
-	end);
+	AMZTFrame:StartMeter()
 end
 
 function AMZTFrame:PLAYER_REGEN_ENABLED(event)
+	AMZTFrame:StopMeter()
+end
+
+function AMZTFrame:StartMeter()
+	-- Dont enable in battlegrounds
+	if (not UnitInBattleground("player")) then
+		-- Wipe the table
+		wipe(AMZThreatTable)
+		
+		-- Set the interval
+		if (AMZT.Mode == 2) then
+			AMZTFrame.Interval = AMZT.MinInterval
+		else
+			AMZTFrame.Interval = AMZT.MaxInterval
+		end
+		
+		-- Get player, party and raid members for local threat table
+		if (GetNumRaidMembers() > 0) then -- Check for raid
+			for i=1, GetNumRaidMembers() do
+				table.insert(AMZThreatTable, { unitName = UnitName("raid".. i), threat = 0,});
+			end
+		else -- Not in raid
+			-- Add player
+			table.insert(AMZThreatTable, { unitName = UnitName("player"), threat = 0,});
+			
+			-- Check for party
+			if (GetNumPartyMembers() > 0) then
+				for i=1, GetNumPartyMembers() do
+					table.insert(AMZThreatTable, { unitName = UnitName("party".. i), threat = 0,});
+				end
+			end
+		end
+		
+		-- Start time based check
+		AMZTFrame:SetScript("OnUpdate", function(self, elapsed)
+			AMZT:DoUpdate(AMZTFrame, elapsed);
+		end);
+	end
+end
+
+function AMZTFrame:StopMeter()
 	-- Stop time based check
 	AMZTFrame:SetScript("OnUpdate", nil)
-	
-	-- Clear threat table
-	wipe(AMZThreatTable)
 	
 	-- Hide all bars
 	for i = 1, table.getn(AMZT.Bars) do
@@ -112,19 +123,39 @@ function AMZTFrame:PLAYER_REGEN_ENABLED(event)
 end
 
 function AMZTFrame:PLAYER_TARGET_CHANGED(event)
-	-- Reset threat values if in combat
 	if (UnitAffectingCombat("player")) then
+		-- Reset threat values if in combat
 		for i=1, table.getn(AMZThreatTable) do
 			AMZThreatTable[i].threat = 0
 		end
 		
-		-- Hide all threat bars if no target
+		-- Hide all threat bars
 		for i=1, table.getn(AMZT.Bars) do
 			AMZT.Bars[i]:Hide()
 		end
 		
 		-- Do an update since new target
 		AMZT:DoUpdate(AMZTFrame, 1)
+	end
+end
+
+function AMZTFrame:RAID_ROSTER_UPDATE(event)
+	-- Remove ppl from local threat table if they leave raid
+	for i=1, table.getn(AMZThreatTable) do
+		if (not UnitInRaid(AMZThreatTable[i].unitName)) then
+			table.remove(AMZThreatTable, i)
+			return
+		end
+	end
+end
+
+function AMZTFrame:PARTY_MEMBERS_CHANGED(event)
+	-- Remove ppl from local threat table if they leave party
+	for i=1, table.getn(AMZThreatTable) do
+		if (not UnitInParty(AMZThreatTable[i].unitName)) then
+			table.remove(AMZThreatTable, i)
+			return
+		end
 	end
 end
 
@@ -146,12 +177,13 @@ function AMZT:SetupFrames()
 			insets = { left = 0, right = 0, top = 0, bottom = 0 }});
 	titleBar:SetBackdropColor(unpack(AMZT.Style.Title.Color))
 	titleBar:SetHeight(AMZT.Style.Title.Height)
-	titleBar:SetWidth(AMZT.Style.Width)
+	--titleBar:SetWidth(AMZT.Style.Width)
 	titleBar:SetPoint("TOPLEFT", AMZTFrame, "TOPLEFT", 0, 0)
+	titleBar:SetPoint("TOPRIGHT", AMZTFrame, "TOPRIGHT", 0, 0)
 	
 	-- Title Font
 	titleBar.Caption = titleBar:CreateFontString(nil, "ARTWORK")
-	titleBar.Caption:SetPoint("LEFT", titleBar, "LEFT", 4, 0)
+	titleBar.Caption:SetPoint(AMZT.Style.Title.TextAlign, titleBar, AMZT.Style.Title.TextAlign, 4, 0)
 	titleBar.Caption:SetFont(AMZT.Style.Title.Font, AMZT.Style.Title.FontSize)
 	titleBar.Caption:SetTextColor(unpack(AMZT.Style.Title.FontColor))
 	titleBar.Caption:SetText("Threat")
@@ -162,10 +194,11 @@ function AMZT:SetupFrames()
 	
 	for i = 1, AMZT.Style.Unit.MaxBars do
 		local unitBar = CreateFrame("StatusBar", "AmazThreatFrame".. i, AMZTFrame)
-		unitBar:SetWidth(AMZT.Style.Width)
+		--unitBar:SetWidth(AMZT.Style.Width)
 		unitBar:SetHeight(AMZT.Style.Unit.Height)
 		unitBar:SetStatusBarTexture(AMZT.Style.Unit.Texture)
-		unitBar:SetPoint("TOP", tbAnchor, "BOTTOM", 0, AMZT.Style.Unit.BarSpacing)
+		unitBar:SetPoint("TOPLEFT", tbAnchor, "BOTTOMLEFT", 0, AMZT.Style.Unit.BarSpacing)
+		unitBar:SetPoint("TOPRIGHT", tbAnchor, "BOTTOMRIGHT", 0, AMZT.Style.Unit.BarSpacing)
 		unitBar:SetMinMaxValues(0,100)
 		
 		if (not AMZT.Style.Unit.UseClassColor) then
@@ -201,7 +234,7 @@ end
 function AMZT:DoUpdate(amztFrame, elapsed)
 	amztFrame.Elapsed = amztFrame.Elapsed + elapsed
 	
-	if (amztFrame.Elapsed >= AMZTFrame.Interval and UnitName("target") ~= nil) then
+	if (amztFrame.Elapsed >= AMZTFrame.Interval and UnitName("target") ~= nil and not UnitPlayerControlled("target")) then
 		for i = 1, table.getn(AMZThreatTable) do
 			isTanking, status, scaledPercent, rawPercent, threatValue = UnitDetailedThreatSituation(AMZThreatTable[i].unitName, "target")
 			
@@ -266,6 +299,8 @@ function AMZT:Init()
 	AMZTFrame:RegisterEvent("PLAYER_REGEN_DISABLED")
 	AMZTFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	AMZTFrame:RegisterEvent("PLAYER_TARGET_CHANGED")
+	--AMZTFrame:RegisterEvent("RAID_ROSTER_UPDATE")
+	--AMZTFrame:RegisterEvent("PARTY_MEMBERS_CHANGED")
 	
 	AMZTFrame:SetScript("OnEvent", function(self, event, ...)
 		AMZTFrame[event](self, event, ...)
